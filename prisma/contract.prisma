@@ -1,0 +1,188 @@
+// use prisma-8
+
+model Company {
+  id        String   @id @default(cuid(2))
+  name      String
+  slug      String   @unique
+  phone     String?
+  email     String?
+  logoUrl   String?
+  status    String   @default("ACTIVE")
+  timezone  String   @default("America/Sao_Paulo")
+  createdAt DateTime @default(now())
+  updatedAt temporal.updatedAt()
+
+  users         CompanyUser[]
+  customers     Customer[]
+  categories    Category[]
+  products      Product[]
+  conversations Conversation[]
+  orders        Order[]
+  aiConfig      AiConfig?
+}
+
+model User {
+  id           String   @id @default(cuid(2))
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    temporal.updatedAt()
+
+  companies CompanyUser[]
+}
+
+model CompanyUser {
+  id        String @id @default(cuid(2))
+  companyId String
+  userId    String
+  role      String @default("ATTENDANT")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+}
+
+model Customer {
+  id        String   @id @default(cuid(2))
+  companyId String
+  name      String
+  phone     String
+  email     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt temporal.updatedAt()
+
+  company       Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  orders        Order[]
+  addresses     CustomerAddress[]
+
+  @@unique([companyId, phone])
+}
+
+model CustomerAddress {
+  id           String  @id @default(cuid(2))
+  customerId   String
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  city         String
+  reference    String?
+  latitude     Float?
+  longitude    Float?
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String  @id @default(cuid(2))
+  companyId   String
+  name        String
+  description String?
+  sortOrder   Int     @default(0)
+  active      Boolean @default(true)
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products Product[]
+}
+
+model Product {
+  id          String       @id @default(cuid(2))
+  companyId   String
+  categoryId  String?
+  name        String
+  description String?
+  price       Numeric(10, 2)
+  imageUrl    String?
+  active      Boolean      @default(true)
+  sortOrder   Int          @default(0)
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id])
+  items    OrderItem[]
+}
+
+model Conversation {
+  id            String   @id @default(cuid(2))
+  companyId     String
+  customerId    String
+  channel       String   @default("WHATSAPP")
+  status        String   @default("OPEN")
+  startedAt     DateTime @default(now())
+  lastMessageAt DateTime @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages Message[]
+  orders   Order[]
+}
+
+model Message {
+  id             String   @id @default(cuid(2))
+  conversationId String
+  role           String
+  type           String   @default("TEXT")
+  content        String?
+  audioUrl       String?
+  transcription  String?
+  aiGenerated    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id              String         @id @default(cuid(2))
+  companyId       String
+  customerId      String
+  conversationId  String?
+  status          String         @default("PENDING")
+  subtotal        Numeric(10, 2)
+  deliveryFee     Numeric(10, 2) @default(0)
+  discount        Numeric(10, 2) @default(0)
+  total           Numeric(10, 2)
+  paymentMethod   String?
+  paymentStatus   String         @default("PENDING")
+  deliveryAddress String?
+  createdAt       DateTime       @default(now())
+  updatedAt       temporal.updatedAt()
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id          String         @id @default(cuid(2))
+  orderId     String
+  productId   String?
+  productName String
+  quantity    Int
+  unitPrice   Numeric(10, 2)
+  total       Numeric(10, 2)
+  notes       String?
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+}
+
+model AiConfig {
+  id                  String   @id @default(cuid(2))
+  companyId           String   @unique
+  enabled             Boolean  @default(true)
+  model               String   @default("gpt-5.6")
+  systemPrompt        String?
+  tone                String   @default("friendly")
+  language            String   @default("pt-BR")
+  autoOrder           Boolean  @default(true)
+  autoDelivery        Boolean  @default(true)
+  autoPayment         Boolean  @default(false)
+  humanHandoff        Boolean  @default(true)
+  businessDescription String?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
