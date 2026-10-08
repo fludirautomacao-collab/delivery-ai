@@ -7,7 +7,7 @@ export async function POST(request: Request) {
 
     if (!body.name || !body.email || !body.password) {
       return NextResponse.json(
-        { error: "name, email e passwordHash são obrigatórios." },
+        { error: "name, email e password são obrigatórios." },
         { status: 400 },
       );
     }
@@ -18,7 +18,15 @@ export async function POST(request: Request) {
       password: body.password,
     });
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json(
+      {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     if (
       error instanceof Error &&
