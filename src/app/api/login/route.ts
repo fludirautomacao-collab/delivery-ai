@@ -1,32 +1,35 @@
 import { NextResponse } from "next/server";
-import { registerUser } from "@/modules/auth/service";
+import { loginUser } from "@/modules/auth/login-service";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    if (!body.name || !body.email || !body.password) {
+    if (!body.email || !body.password) {
       return NextResponse.json(
-        { error: "name, email e passwordHash são obrigatórios." },
+        { error: "email e password são obrigatórios." },
         { status: 400 },
       );
     }
 
-    const user = await registerUser({
-      name: body.name,
+    const user = await loginUser({
       email: body.email,
       password: body.password,
     });
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    });
   } catch (error) {
     if (
       error instanceof Error &&
-      error.message === "Já existe um usuário com este e-mail."
+      error.message === "E-mail ou senha inválidos."
     ) {
       return NextResponse.json(
         { error: error.message },
-        { status: 409 },
+        { status: 401 },
       );
     }
 
