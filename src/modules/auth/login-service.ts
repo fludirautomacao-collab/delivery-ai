@@ -1,5 +1,6 @@
 import { findUserByEmail } from "./repository";
 import { verifyPassword } from "./password";
+import { createSession } from "./session";
 
 export async function loginUser(data: {
   email: string;
@@ -11,14 +12,16 @@ export async function loginUser(data: {
     throw new Error("E-mail ou senha inválidos.");
   }
 
-  const validPassword = await verifyPassword(
+  const passwordValid = await verifyPassword(
     data.password,
     user.passwordHash,
   );
 
-  if (!validPassword) {
+  if (!passwordValid) {
     throw new Error("E-mail ou senha inválidos.");
   }
+
+  await createSession(user.id);
 
   return user;
 }

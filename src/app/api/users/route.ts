@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { registerUser } from "@/modules/auth/service";
+import { getSessionUserId } from "@/modules/auth/session";
 
 export async function POST(request: Request) {
+  const userId = await getSessionUserId();
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Não autenticado." },
+      { status: 401 },
+    );
+  }
+
   try {
     const body = await request.json();
 
